@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Voice Agent</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .menu-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+
+        .menu-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .menu-btn span {
+            width: 20px;
+            height: 2px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 320px;
+            height: 100%;
+            background: rgba(30, 30, 50, 0.98);
+            backdrop-filter: blur(20px);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .settings-panel.open {
+            right: 0;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .settings-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            width: 35px;
+            height: 35px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .settings-group {
+            margin-bottom: 25px;
+        }
+
+        .settings-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .settings-input, .settings-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .settings-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .settings-input:focus, .settings-select:focus {
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .settings-select option {
+            background: #2a2a4a;
+            color: white;
+        }
+
+        .settings-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 100, 100, 0.2);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .settings-button:hover {
+            background: rgba(255, 100, 100, 0.3);
+        }
+
+        /* Main Container */
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Orb Animation */
+        .orb-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            height: 120px;
+        }
+
+        .orb {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.5);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .orb.idle {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .orb.thinking {
+            animation: pulse 1s ease-in-out infinite;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 200, 100, 0.9), rgba(255, 150, 50, 0.3));
+            box-shadow: 0 0 80px rgba(255, 200, 100, 0.7);
+        }
+
+        .orb.speaking {
+            animation: speak 0.5s ease-in-out infinite;
+            background: radial-gradient(circle at 30% 30%, rgba(100, 255, 150, 0.9), rgba(50, 200, 100, 0.3));
+            box-shadow: 0 0 100px rgba(100, 255, 150, 0.8);
+        }
+
+        .orb.error {
+            animation: shake 0.5s;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 100, 100, 0.9), rgba(200, 50, 50, 0.3));
+            box-shadow: 0 0 80px rgba(255, 100, 100, 0.7);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        @keyframes speak {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.05); }
+            75% { transform: scale(0.95); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Conversation Log */
+        .conversation-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            min-height: 300px;
+            max-height: 500px;
+        }
+
+        .conversation-log {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .message-text {
+            font-size: 18px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.95);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-label {
+            color: rgba(150, 200, 255, 0.8);
+        }
+
+        .message.agent .message-label {
+            color: rgba(150, 255, 200, 0.8);
+        }
+
+        /* Typing animation */
+        .typing-text {
+            display: inline;
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 20px;
+            background: white;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .conversation-placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+            font-size: 16px;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        /* Input Controls */
+        .input-container {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .mic-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 100, 100, 0.3);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-btn:hover:not(:disabled) {
+            background: rgba(255, 100, 100, 0.5);
+        }
+
+        .mic-btn.recording {
+            background: rgba(255, 100, 100, 0.8);
+            animation: pulse 1.5s infinite;
+        }
+
+        .mic-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .message-input:focus {
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .send-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: white;
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            min-height: 20px;
+        }
+
+        /* Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .overlay.open {
+            display: block;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 600px) {
+            .settings-panel {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .orb-container {
+                height: 100px;
+            }
+            
+            .orb {
+                width: 70px;
+                height: 70px;
+            }
+
+            .message-text {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="app-title">Alpha Voice</div>
+        <button class="menu-btn" id="menuBtn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <div class="settings-title">Settings</div>
+            <button class="close-btn" id="closeBtn">✕</button>
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Make.com Webhook URL</label>
+            <input 
+                type="text" 
+                class="settings-input" 
+                id="webhookUrl" 
+                placeholder="https://hook.us1.make.com/..."
+                autocomplete="off"
+            >
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">OpenAI API Key</label>
+            <input 
+                type="password" 
+                class="settings-input" 
+                id="openaiKey" 
+                placeholder="sk-..."
+                autocomplete="off"
+            >
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">TTS Model</label>
+            <select class="settings-select" id="ttsModel">
+                <option value="tts-1">TTS-1 (Faster)</option>
+                <option value="tts-1-hd">TTS-1-HD (Better Quality)</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Voice</label>
+            <select class="settings-select" id="ttsVoice">
+                <option value="nova">Nova (Friendly)</option>
+                <option value="alloy">Alloy (Neutral)</option>
+                <option value="echo">Echo (Warm)</option>
+                <option value="fable">Fable (Expressive)</option>
+                <option value="onyx">Onyx (Deep)</option>
+                <option value="shimmer">Shimmer (Energetic)</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Your Name</label>
+            <input 
+                type="text" 
+                class="settings-input" 
+                id="userName" 
+                placeholder="Michael"
+                autocomplete="off"
+            >
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Agent Name</label>
+            <input 
+                type="text" 
+                class="settings-input" 
+                id="agentName" 
+                placeholder="Alpha"
+                autocomplete="off"
+            >
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Voice Input Method</label>
+            <select class="settings-select" id="voiceInputMethod">
+                <option value="wispr">Wispr Flow (Text Field)</option>
+                <option value="native">Native Browser Dictation</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Enable Voice Interruption</label>
+            <select class="settings-select" id="enableInterruption">
+                <option value="false">Disabled</option>
+                <option value="true">Enabled (Experimental)</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Use CORS Proxy (Testing)</label>
+            <select class="settings-select" id="useCorsProxy">
+                <option value="false">Direct Connection</option>
+                <option value="true">Use Proxy (for debugging)</option>
+            </select>
+        </div>
+
+        <button class="settings-button" id="newThreadBtn">Start New Conversation</button>
+    </div>
+
+    <div class="container">
+        <div class="orb-container">
+            <div class="orb idle" id="orb"></div>
+        </div>
+        
+        <div class="conversation-container">
+            <div class="conversation-log" id="conversationLog">
+                <div class="conversation-placeholder">
+                    Start a conversation with your agent...
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    class="message-input" 
+                    id="messageInput" 
+                    placeholder="Tap here and dictate with Wispr Flow..."
+                    autocomplete="off"
+                >
+                <button class="mic-btn" id="micBtn" style="display: none;">🎤</button>
+                <button class="send-btn" id="sendBtn">Send</button>
+            </div>
+            
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const config = {
+            threadTs: Date.now().toString(),
+            channelId: 'voice',
+            userName: 'Michael',
+            agentName: 'Alpha',
+            ttsModel: 'tts-1',
+            ttsVoice: 'nova',
+            voiceInputMethod: 'wispr',
+            enableInterruption: false
+        };
+
+        // Speech recognition setup
+        let recognition = null;
+        let isRecording = false;
+        let currentAudio = null;
+        let interruptionEnabled = false;
+
+        // Initialize speech recognition if available
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                micBtn.classList.add('recording');
+                setStatus('Listening...');
+                messageInput.placeholder = 'Listening...';
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Update input field with current transcription
+                if (finalTranscript) {
+                    messageInput.value += finalTranscript;
+                } else {
+                    // Show interim results in placeholder
+                    messageInput.placeholder = interimTranscript || 'Listening...';
+                }
+
+                // If interruption is enabled and audio is playing, pause it
+                if (interruptionEnabled && currentAudio && !currentAudio.paused) {
+                    currentAudio.pause();
+                    setOrbState('idle');
+                    setStatus('Playback paused - listening...', 2000);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                setStatus('Speech recognition error: ' + event.error, 3000);
+                messageInput.placeholder = 'Tap here and dictate...';
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                setStatus('');
+                messageInput.placeholder = 'Tap here and dictate...';
+            };
+        }
+
+        // Load saved settings
+        function loadSettings() {
+            const savedWebhook = localStorage.getItem('webhookUrl');
+            const savedApiKey = localStorage.getItem('openaiApiKey');
+            const savedTtsModel = localStorage.getItem('ttsModel');
+            const savedTtsVoice = localStorage.getItem('ttsVoice');
+            const savedUserName = localStorage.getItem('userName');
+            const savedAgentName = localStorage.getItem('agentName');
+            const savedVoiceInput = localStorage.getItem('voiceInputMethod');
+            const savedInterruption = localStorage.getItem('enableInterruption');
+            const savedCorsProxy = localStorage.getItem('useCorsProxy');
+            
+            if (savedWebhook) document.getElementById('webhookUrl').value = savedWebhook;
+            if (savedApiKey) document.getElementById('openaiKey').value = savedApiKey;
+            if (savedTtsModel) {
+                document.getElementById('ttsModel').value = savedTtsModel;
+                config.ttsModel = savedTtsModel;
+            }
+            if (savedTtsVoice) {
+                document.getElementById('ttsVoice').value = savedTtsVoice;
+                config.ttsVoice = savedTtsVoice;
+            }
+            if (savedUserName) {
+                document.getElementById('userName').value = savedUserName;
+                config.userName = savedUserName;
+            }
+            if (savedAgentName) {
+                document.getElementById('agentName').value = savedAgentName;
+                config.agentName = savedAgentName;
+            }
+            if (savedVoiceInput) {
+                document.getElementById('voiceInputMethod').value = savedVoiceInput;
+                config.voiceInputMethod = savedVoiceInput;
+                updateVoiceInputUI();
+            }
+            if (savedInterruption) {
+                document.getElementById('enableInterruption').value = savedInterruption;
+                config.enableInterruption = savedInterruption === 'true';
+                interruptionEnabled = config.enableInterruption;
+            }
+            if (savedCorsProxy) {
+                document.getElementById('useCorsProxy').value = savedCorsProxy;
+            }
+        }
+
+        loadSettings();
+
+        // Elements
+        const orb = document.getElementById('orb');
+        const conversationLog = document.getElementById('conversationLog');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const micBtn = document.getElementById('micBtn');
+        const status = document.getElementById('status');
+        const menuBtn = document.getElementById('menuBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const overlay = document.getElementById('overlay');
+        const newThreadBtn = document.getElementById('newThreadBtn');
+
+        // Settings elements
+        const webhookUrl = document.getElementById('webhookUrl');
+        const openaiKey = document.getElementById('openaiKey');
+        const ttsModel = document.getElementById('ttsModel');
+        const ttsVoice = document.getElementById('ttsVoice');
+        const userName = document.getElementById('userName');
+        const agentName = document.getElementById('agentName');
+        const voiceInputMethod = document.getElementById('voiceInputMethod');
+        const enableInterruption = document.getElementById('enableInterruption');
+        const useCorsProxy = document.getElementById('useCorsProxy');
+
+        // State management
+        let isProcessing = false;
+        let conversationHistory = [];
+
+        // Menu toggle
+        menuBtn.addEventListener('click', () => {
+            settingsPanel.classList.add('open');
+            overlay.classList.add('open');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            settingsPanel.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+
+        overlay.addEventListener('click', () => {
+            settingsPanel.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+
+        // Update voice input UI based on method
+        function updateVoiceInputUI() {
+            if (config.voiceInputMethod === 'native' && recognition) {
+                micBtn.style.display = 'flex';
+                messageInput.placeholder = 'Tap mic to dictate or type here...';
+            } else {
+                micBtn.style.display = 'none';
+                messageInput.placeholder = 'Tap here and dictate with Wispr Flow...';
+            }
+        }
+
+        // Save settings
+        webhookUrl.addEventListener('blur', () => {
+            localStorage.setItem('webhookUrl', webhookUrl.value);
+        });
+
+        openaiKey.addEventListener('blur', () => {
+            localStorage.setItem('openaiApiKey', openaiKey.value);
+        });
+
+        ttsModel.addEventListener('change', () => {
+            config.ttsModel = ttsModel.value;
+            localStorage.setItem('ttsModel', ttsModel.value);
+        });
+
+        ttsVoice.addEventListener('change', () => {
+            config.ttsVoice = ttsVoice.value;
+            localStorage.setItem('ttsVoice', ttsVoice.value);
+        });
+
+        userName.addEventListener('blur', () => {
+            config.userName = userName.value || 'User';
+            localStorage.setItem('userName', config.userName);
+        });
+
+        agentName.addEventListener('blur', () => {
+            config.agentName = agentName.value || 'Agent';
+            localStorage.setItem('agentName', config.agentName);
+        });
+
+        voiceInputMethod.addEventListener('change', () => {
+            config.voiceInputMethod = voiceInputMethod.value;
+            localStorage.setItem('voiceInputMethod', voiceInputMethod.value);
+            updateVoiceInputUI();
+        });
+
+        enableInterruption.addEventListener('change', () => {
+            config.enableInterruption = enableInterruption.value === 'true';
+            interruptionEnabled = config.enableInterruption;
+            localStorage.setItem('enableInterruption', enableInterruption.value);
+        });
+
+        useCorsProxy.addEventListener('change', () => {
+            localStorage.setItem('useCorsProxy', useCorsProxy.value);
+        });
+
+        // Update orb state
+        function setOrbState(state) {
+            orb.className = `orb ${state}`;
+        }
+
+        // Update status message
+        function setStatus(message, duration = 0) {
+            status.textContent = message;
+            if (duration > 0) {
+                setTimeout(() => {
+                    status.textContent = '';
+                }, duration);
+            }
+        }
+
+        // Add message to conversation log
+        function addMessage(sender, text, animate = false) {
+            // Clear placeholder if it exists
+            const placeholder = conversationLog.querySelector('.conversation-placeholder');
+            if (placeholder) {
+                placeholder.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender === config.userName ? 'user' : 'agent'}`;
+            
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'message-label';
+            labelDiv.textContent = sender;
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+            
+            messageDiv.appendChild(labelDiv);
+            messageDiv.appendChild(textDiv);
+            conversationLog.appendChild(messageDiv);
+
+            if (animate) {
+                // Typing animation
+                typeText(textDiv, text);
+            } else {
+                textDiv.textContent = text;
+            }
+
+            // Scroll to bottom
+            conversationLog.scrollTop = conversationLog.scrollHeight;
+        }
+
+        // Typing animation
+        function typeText(element, text, speed = 30) {
+            let index = 0;
+            element.innerHTML = '<span class="typing-text"></span><span class="typing-cursor"></span>';
+            const textSpan = element.querySelector('.typing-text');
+            const cursor = element.querySelector('.typing-cursor');
+            
+            function type() {
+                if (index < text.length) {
+                    textSpan.textContent += text.charAt(index);
+                    index++;
+                    setTimeout(type, speed);
+                } else {
+                    cursor.remove();
+                }
+            }
+            
+            type();
+        }
+
+        // OpenAI TTS with interruption support
+        async function speakText(text) {
+            const apiKey = openaiKey.value;
+            if (!apiKey) {
+                // Fallback to browser TTS if no API key
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.onstart = () => setOrbState('speaking');
+                    utterance.onend = () => {
+                        setOrbState('idle');
+                        currentAudio = null;
+                    };
+                    speechSynthesis.speak(utterance);
+                    
+                    // Store reference for interruption (browser TTS)
+                    if (interruptionEnabled) {
+                        // For browser TTS, we'd use speechSynthesis.pause()
+                        currentAudio = { 
+                            pause: () => speechSynthesis.pause(),
+                            play: () => speechSynthesis.resume(),
+                            paused: false
+                        };
+                    }
+                }
+                return;
+            }
+
+            try {
+                setOrbState('speaking');
+                
+                const response = await fetch('https://api.openai.com/v1/audio/speech', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: config.ttsModel,
+                        input: text,
+                        voice: config.ttsVoice
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('TTS request failed');
+                }
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                
+                // Store audio reference for interruption
+                currentAudio = audio;
+                
+                audio.onplay = () => {
+                    setOrbState('speaking');
+                };
+                
+                audio.onended = () => {
+                    setOrbState('idle');
+                    URL.revokeObjectURL(audioUrl);
+                    currentAudio = null;
+                };
+                
+                audio.onerror = () => {
+                    setOrbState('idle');
+                    setStatus('Audio playback error', 3000);
+                    currentAudio = null;
+                };
+                
+                // Handle interruption by user
+                audio.onpause = () => {
+                    if (interruptionEnabled) {
+                        setOrbState('idle');
+                        setStatus('Playback paused', 2000);
+                    }
+                };
+                
+                await audio.play();
+                
+            } catch (error) {
+                console.error('TTS Error:', error);
+                setStatus('Voice synthesis failed', 3000);
+                setOrbState('idle');
+                currentAudio = null;
+                
+                // Fallback to browser TTS
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    speechSynthesis.speak(utterance);
+                }
+            }
+        }
+
+        // Send message to webhook
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            const webhook = webhookUrl.value.trim();
+            
+            if (!message) {
+                setStatus('Please enter a message', 3000);
+                return;
+            }
+            
+            if (!webhook) {
+                setStatus('Please configure webhook URL in settings', 3000);
+                settingsPanel.classList.add('open');
+                overlay.classList.add('open');
+                return;
+            }
+            
+            // Add user message to conversation
+            addMessage(config.userName, message);
+            
+            isProcessing = true;
+            sendBtn.disabled = true;
+            messageInput.disabled = true;
+            setOrbState('thinking');
+            setStatus('Processing...');
+            
+            // Clear input
+            messageInput.value = '';
+            
+            try {
+                const startTime = Date.now();
+                
+                // For testing CORS issues, uncomment the next line and comment out the line after
+                // const response = await fetch('https://cors-anywhere.herokuapp.com/' + webhook, {
+                const response = await fetch(webhook, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify([{
+                        message: message,
+                        channel_id: config.channelId,
+                        thread_ts: config.threadTs
+                    }])
+                });
+                
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status}`);
+                }
+                
+                // Get response as text first
+                const rawResponse = await response.text();
+                console.log('Raw response:', rawResponse);
+                
+                let agentMessage;
+                
+                // Check if response is JSON or plain text
+                if (rawResponse.trim().startsWith('[') || rawResponse.trim().startsWith('{')) {
+                    // Looks like JSON, try to parse it
+                    try {
+                        const data = JSON.parse(rawResponse);
+                        
+                        // Handle array format [{"body": "...", "status": 200}]
+                        if (Array.isArray(data) && data[0] && data[0].body) {
+                            agentMessage = data[0].body;
+                        }
+                        // Handle object format {"body": "..."}
+                        else if (data.body) {
+                            agentMessage = data.body;
+                        }
+                        // Handle plain JSON string
+                        else if (typeof data === 'string') {
+                            agentMessage = data;
+                        } else {
+                            console.error('Unexpected JSON structure:', data);
+                            agentMessage = rawResponse;
+                        }
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
+                        // If JSON parsing fails, treat as plain text
+                        agentMessage = rawResponse;
+                    }
+                } else {
+                    // Plain text response
+                    agentMessage = rawResponse;
+                }
+                
+                // Add agent message to conversation with typing animation
+                addMessage(config.agentName, agentMessage, true);
+                setStatus(`Response in ${elapsed}s`, 3000);
+                
+                // Speak the response
+                await speakText(agentMessage);
+                
+            } catch (error) {
+                console.error('Full error details:', error);
+                setOrbState('error');
+                
+                let errorMessage = 'Error: ';
+                if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+                    errorMessage += 'Network error - likely CORS issue. Check console for details.';
+                    console.log('This is likely a CORS error. The webhook may not allow requests from:', window.location.origin);
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                setStatus(errorMessage, 8000);
+                addMessage('System', errorMessage);
+                
+                setTimeout(() => setOrbState('idle'), 2000);
+            } finally {
+                isProcessing = false;
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !isProcessing) {
+                sendMessage();
+            }
+        });
+
+        // Microphone button for native dictation
+        micBtn.addEventListener('click', () => {
+            if (!recognition) {
+                setStatus('Speech recognition not supported in this browser', 3000);
+                return;
+            }
+
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                // Resume audio if it was paused
+                if (currentAudio && currentAudio.paused && interruptionEnabled) {
+                    currentAudio.play();
+                    setOrbState('speaking');
+                    setStatus('Resuming playback', 2000);
+                } else {
+                    // Start new recognition
+                    recognition.start();
+                }
+            }
+        });
+
+        newThreadBtn.addEventListener('click', () => {
+            config.threadTs = Date.now().toString();
+            conversationLog.innerHTML = '<div class="conversation-placeholder">Start a conversation with your agent...</div>';
+            conversationHistory = [];
+            setStatus('Started new conversation', 3000);
+            settingsPanel.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+
+        // Keep screen awake during processing
+        if ('wakeLock' in navigator) {
+            let wakeLock = null;
+            
+            async function requestWakeLock() {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                } catch (err) {
+                    console.log('Wake Lock error:', err);
+                }
+            }
+            
+            document.addEventListener('visibilitychange', () => {
+                if (isProcessing && document.visibilityState === 'visible') {
+                    requestWakeLock();
+                }
+            });
+        }
+
+        // Focus input on load
+        messageInput.focus();
+    </script>
+</body>
+</html>
